@@ -736,6 +736,8 @@ dependencies = [
  "anyhow",
  "bollard",
  "futures-util",
+ "once_cell",
+ "serde",
  "termion",
  "tokio",
 ]
