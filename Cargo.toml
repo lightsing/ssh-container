@@ -1,0 +1,12 @@
+[package]
+name = "ssh-container"
+version = "0.1.0"
+authors = ["lightsing <light.tsing@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+futures-util = "0.3"
+tokio = { version = "1.2", features = ["fs", "rt-multi-thread", "macros"] }
+bollard = { git = "https://github.com/fussybeaver/bollard.git" }
+termion = "1.5"
+anyhow = "1.0"
