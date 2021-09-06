@@ -11,8 +11,6 @@ mod docker;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    docker::init(Docker::connect_with_unix_defaults().unwrap());
-
     docker::pull(IMAGE).await?;
 
     let container_config = Config {

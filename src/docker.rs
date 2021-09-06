@@ -6,14 +6,14 @@ use bollard::exec::{CreateExecOptions, ResizeExecOptions, StartExecResults};
 use bollard::image::CreateImageOptions;
 use bollard::{container, Docker};
 use futures_util::{StreamExt, TryStreamExt};
-use once_cell::sync::OnceCell;
+use once_cell::sync::Lazy;
 use serde::Serialize;
 use termion::raw::IntoRawMode;
 use termion::{get_tty, terminal_size};
 use tokio::fs::File;
 use tokio::task::spawn;
 
-static DOCKER: OnceCell<Docker> = OnceCell::new();
+pub static DOCKER: Lazy<Docker> = Lazy::new(|| Docker::connect_with_unix_defaults().unwrap());
 
 #[derive(Debug)]
 pub struct Container<'d> {
@@ -27,22 +27,11 @@ pub struct Exec<'d> {
     docker: &'d Docker,
 }
 
-/// Init the singleton docker instance.
-pub fn init(docker: Docker) {
-    DOCKER.set(docker).unwrap()
-}
-
-/// Get the default docker instance.
-/// This will panic if docker instance is not set.
-pub fn default() -> &'static Docker {
-    DOCKER.get().unwrap()
-}
-
 pub async fn pull<T>(image: T) -> Result<(), bollard::errors::Error>
 where
     T: Into<String> + Serialize + Default,
 {
-    default()
+    DOCKER
         .create_image(
             Some(CreateImageOptions {
                 from_image: image,
