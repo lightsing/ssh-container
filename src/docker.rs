@@ -56,7 +56,7 @@ impl<'d> Container<'d> {
         N: Into<String> + Serialize,
     {
         let docker = match docker {
-            None => default(),
+            None => &DOCKER,
             Some(docker) => docker,
         };
         let id = docker.create_container::<N, T>(options, config).await?.id;
