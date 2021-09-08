@@ -10,16 +10,17 @@ use actix_web::middleware::Logger;
 use actix_web::{get, guard, post, web, App, HttpResponse, HttpServer, Responder};
 use anyhow::Result;
 use internal::auth::cas::{CasResponse, ServiceResponse};
-use internal::{AuthStatus, AuthStore, ChallengeFilter, Config, DaemonConfig};
+use internal::{AuthStatus, AuthStore, ChallengeFilter, Config, DaemonConfig, AutoRemoveHashMap};
 use serde::Deserialize;
 use tokio::sync::RwLock;
+use tokio::time::Duration;
 
 #[actix_web::main]
 async fn main() -> Result<()> {
     pretty_env_logger::init();
     let config = Arc::new(DaemonConfig::new("ssh-containerd.conf")?);
     let config_ = config.clone();
-    let challenge_filter: ChallengeFilter = Arc::new(RwLock::new(HashMap::new()));
+    let challenge_filter: ChallengeFilter = AutoRemoveHashMap::new(Duration::from_secs(10));
     let auth_status: AuthStore = Arc::new(RwLock::new(HashMap::new()));
 
     HttpServer::new(move || {
@@ -69,16 +70,14 @@ async fn create_auth_url(
     challenge_filter: web::Data<ChallengeFilter>,
 ) -> impl Responder {
     let req = req.into_inner();
+    let challenge_filter = challenge_filter.into_inner();
     let challenge = uuid::Uuid::new_v4().to_string();
     let auth_url = config
         .auth()
         .cas()
         .unwrap()
         .gen_auth_url(challenge.as_str());
-    challenge_filter
-        .write()
-        .await
-        .insert(challenge.clone(), req.identifier.clone());
+    challenge_filter.insert(challenge.clone(), req.identifier.clone()).await;
     auth_status
         .write()
         .await
@@ -118,19 +117,11 @@ async fn cas(
     if config.auth().cas().is_none() {
         return HttpResponse::Forbidden().finish();
     }
-    if !challenge_filter
-        .read()
-        .await
-        .contains_key(&callback_data.challenge)
-    {
+    let challenge_filter = challenge_filter.into_inner();
+    if !challenge_filter.contains_key(&callback_data.challenge).await {
         return HttpResponse::BadRequest().finish();
     }
-    let identifier = challenge_filter
-        .write()
-        .await
-        .remove(&callback_data.challenge)
-        .unwrap()
-        .to_owned();
+    let identifier = challenge_filter.remove(&callback_data.challenge).await.unwrap();
 
     let url = config
         .auth()

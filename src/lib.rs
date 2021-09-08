@@ -7,10 +7,12 @@ use tokio::sync::RwLock;
 #[cfg(feature = "auth")]
 pub mod auth;
 pub mod config;
+pub mod helper;
 
 pub use crate::config::{Config, DaemonConfig, RunnerConfig};
+pub use crate::helper::AutoRemoveHashMap;
 
-pub type ChallengeFilter = Arc<RwLock<HashMap<String, String>>>;
+pub type ChallengeFilter = Arc<AutoRemoveHashMap<String, String>>;
 pub type AuthStore = Arc<RwLock<HashMap<String, AuthStatus>>>;
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
