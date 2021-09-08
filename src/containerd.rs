@@ -115,11 +115,11 @@ async fn cas(
     callback_data: web::Query<CasCallbackData>,
 ) -> impl Responder {
     if config.auth().cas().is_none() {
-        return HttpResponse::Forbidden().finish();
+        return HttpResponse::Forbidden().body("cas authentication disabled");
     }
     let challenge_filter = challenge_filter.into_inner();
     if !challenge_filter.contains_key(&callback_data.challenge).await {
-        return HttpResponse::BadRequest().finish();
+        return HttpResponse::BadRequest().body("unknown credential").finish();
     }
     let identifier = challenge_filter.remove(&callback_data.challenge).await.unwrap();
 
